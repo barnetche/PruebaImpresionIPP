@@ -132,7 +132,15 @@ Obtiene una lista de todas las impresoras conocidas por un servidor CUPS.
 
 A continuación, se muestran ejemplos prácticos para las operaciones más comunes. 
 
-Ejemplo 0: Imprimir desde un URI 
+Ejemplo 1: Imprimir desde un URI 
+
+using System; 
+
+using System.IO; 
+
+using System.Net.Http; 
+
+using System.Threading.Tasks; 
 
 using SharpIpp; 
 
@@ -140,31 +148,33 @@ using SharpIpp.Exceptions;
 
 using SharpIpp.Models; 
 
-using System.IO; 
-
-using System; 
-
-using System.Threading.Tasks; 
+using SharpIpp.Protocol.Models; 
 
   
 
-class Program 
+class Ejemplo1ImprimirUri 
 
 { 
 
-    static async Task Main(string[] args) 
+    public static async Task RunAsync() 
 
     { 
 
-        string printerUriString = "ipp://10.107.51.5:631/ipp/print";  
+        string printerUriString = "ipp://172.17.170.56:631/ipp/print"; 
 
-        string documentFileName = "word-2-pages.pdf"; 
-
-        Console.WriteLine("Iniciando prueba de impresión con SharpIpp..."); 
-
-        var client = new SharpIppClient(); 
+        string documentFileName = "test.pdf"; 
 
   
+
+        Console.Clear(); 
+
+        Console.WriteLine("Ejecutando Ejemplo 0: Imprimir PDF (Básico)"); 
+
+        Console.WriteLine("=========================================="); 
+
+  
+
+        var client = new SharpIppClient(); 
 
         try 
 
@@ -176,9 +186,7 @@ class Program
 
             { 
 
-                Console.WriteLine($"Error: El archivo '{documentFileName}' no se encontró en la ruta de ejecución."); 
-
-                Console.WriteLine($"Asegúrate de que el archivo esté en el proyecto y configurado para 'Copiar en el directorio de salida'."); 
+                Console.WriteLine($"Error: El archivo '{documentFileName}' no se encontró..."); 
 
                 return; 
 
@@ -188,8 +196,6 @@ class Program
 
             await using var fileStream = File.OpenRead(filePath); 
 
-  
-
             var request = new PrintJobRequest 
 
             { 
@@ -198,29 +204,11 @@ class Program
 
                 Document = fileStream, 
 
-                // Atributos que describen el trabajo de impresión en general 
+                NewJobAttributes = new NewJobAttributes { JobName = "Mi Prueba desde SharpIpp" }, 
 
-                NewJobAttributes = new NewJobAttributes  
-
-                {  
-
-                    JobName = "Mi Prueba desde SharpIpp" 
-
-                }, 
-
-                // Atributos que describen el documento que se está enviando 
-
-                DocumentAttributes = new DocumentAttributes 
-
-                { 
-
-                    DocumentName = documentFileName 
-
-                } 
+                DocumentAttributes = new DocumentAttributes { DocumentName = documentFileName } 
 
             }; 
-
-            // ------------------------ 
 
   
 
@@ -236,41 +224,21 @@ class Program
 
             Console.WriteLine($"  - Estado del Trabajo: {response.JobState}"); 
 
-            Console.WriteLine($"  - URI del Trabajo: {response.JobUri}"); 
-
-        } 
-
-        catch (IppResponseException e) 
-
-        { 
-
-            Console.WriteLine($"Error de IPP: La impresora respondió con el estado '{e.ResponseMessage.StatusCode}'"); 
-
-            Console.WriteLine($"Mensaje detallado: {e.Message}"); 
-
-        } 
-
-        catch (HttpRequestException e) 
-
-        { 
-
-            Console.WriteLine($"Error de Red: No se pudo conectar a la impresora. Verifica la URI."); 
-
-            Console.WriteLine($"Mensaje detallado: {e.Message}"); 
-
         } 
 
         catch (Exception e) 
 
         { 
 
-            Console.WriteLine($"Ha ocurrido un error inesperado: {e.Message}"); 
+            Console.WriteLine($"Ha ocurrido un error: {e.Message}"); 
 
         } 
 
   
 
-        Console.WriteLine("Prueba finalizada. Presiona cualquier tecla para salir."); 
+        // Eliminamos el Console.ReadKey() de aquí, el menú principal lo manejará 
+
+        Console.WriteLine("\nPresiona una tecla para volver al menú..."); 
 
         Console.ReadKey(); 
 
@@ -278,295 +246,631 @@ class Program
 
 } 
 
-Ejemplo 1: Imprimir un archivo PDF 
+Ejemplo 2: Imprimir un archivo PDF 
 
 Esta es la operación más básica. Se necesita un Stream del archivo a imprimir y la URI de la impresora. 
 
+using System; 
+
+using System.IO; 
+
+using System.Net.Http; 
+
+using System.Threading.Tasks; 
+
 using SharpIpp; 
+
+using SharpIpp.Exceptions; 
 
 using SharpIpp.Models; 
 
-  
-
-// 1. Crear el cliente 
-
-var client = new SharpIppClient(); 
+using SharpIpp.Protocol.Models; 
 
   
 
-// 2. Definir la URI de la impresora 
-
-var printerUri = new Uri("ipp://192.168.1.100/ipp/print"); 
-
-  
-
-// 3. Abrir el archivo como un Stream 
-
-await using var fileStream = File.OpenRead(@"C:\ruta\al\documento.pdf"); 
-
-  
-
-// 4. Crear la solicitud de impresión 
-
-var request = new PrintJobRequest 
+class Ejemplo2ImprimirPDF 
 
 { 
 
-    PrinterUri = printerUri, 
-
-    Document = fileStream, 
-
-    NewJobAttributes = new NewJobAttributes 
+    public static async Task RunAsync() 
 
     { 
 
-        JobName = "Mi Primer Trabajo de Impresión", 
+        string printerUriString = "ipp://172.17.170.56:631/ipp/print"; 
 
-        Copies = 1, 
-
-        Sides = SharpIpp.Protocol.Models.Sides.OneSided 
-
-    } 
-
-}; 
+        string documentFileName = "test.pdf"; 
 
   
 
-// 5. Enviar la solicitud y esperar la respuesta 
+        Console.Clear(); 
 
-try 
+        Console.WriteLine("Ejecutando Ejemplo 1: Imprimir un PDF con Atributos"); 
 
-{ 
+        Console.WriteLine("=================================================="); 
 
-    var response = await client.PrintJobAsync(request); 
+  
 
-    Console.WriteLine($"Trabajo enviado. JobId: {response.JobId}, Estado: {response.JobState}"); 
+        var client = new SharpIppClient(); 
+
+        try 
+
+        { 
+
+            var filePath = Path.Combine(AppContext.BaseDirectory, documentFileName); 
+
+            if (!File.Exists(filePath)) 
+
+            { 
+
+                Console.ForegroundColor = ConsoleColor.Red; 
+
+                Console.WriteLine($"Error: No se encontró el archivo '{documentFileName}'."); 
+
+                Console.ResetColor(); 
+
+                return; 
+
+            } 
+
+  
+
+            await using var fileStream = File.OpenRead(filePath); 
+
+            var request = new PrintJobRequest 
+
+            { 
+
+                PrinterUri = new Uri(printerUriString), 
+
+                Document = fileStream, 
+
+                NewJobAttributes = new NewJobAttributes 
+
+                { 
+
+                    JobName = "Mi Primer Trabajo de Impresión", 
+
+                    Copies = 1, 
+
+                    Sides = Sides.OneSided 
+
+                } 
+
+            }; 
+
+  
+
+            Console.WriteLine($"Enviando trabajo a la impresora: {request.PrinterUri}..."); 
+
+            var response = await client.PrintJobAsync(request); 
+
+  
+
+            Console.ForegroundColor = ConsoleColor.Green; 
+
+            Console.WriteLine("¡Trabajo enviado con éxito!"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine($"  -> ID del Trabajo: {response.JobId}"); 
+
+            Console.WriteLine($"  -> Estado del Trabajo: {response.JobState}"); 
+
+        } 
+
+        catch (Exception e) 
+
+        { 
+
+            Console.WriteLine($"Ha ocurrido un error: {e.Message}"); 
+
+        } 
+
+  
+
+        Console.WriteLine("\nPresiona una tecla para volver al menú..."); 
+
+        Console.ReadKey(); 
+
+    } 
 
 } 
 
-catch (IppResponseException e) 
-
-{ 
-
-    // El servidor IPP respondió con un error (ej. formato no soportado) 
-
-    Console.WriteLine($"Error de IPP: {e.Message}. StatusCode: {e.ResponseMessage.StatusCode}"); 
-
-} 
-
-catch (HttpRequestException e) 
-
-{ 
-
-    // Error de red 
-
-    Console.WriteLine($"Error de red: {e.Message}"); 
-
-} 
-
-Ejemplo 2: Consultar los Atributos de una Impresora 
+Ejemplo 3: Consultar los Atributos de una Impresora 
 
 Para saber qué puede hacer una impresora (formatos, si imprime a color, etc.) antes de enviarle un trabajo. 
 
+using System; 
+
+using System.IO; 
+
+using System.Net.Http; 
+
+using System.Threading.Tasks; 
+
 using SharpIpp; 
+
+using SharpIpp.Exceptions; 
 
 using SharpIpp.Models; 
 
   
 
-var client = new SharpIppClient(); 
-
-var printerUri = new Uri("ipp://192.168.1.100/ipp/print"); 
-
-  
-
-// Crear la solicitud para obtener todos los atributos 
-
-var request = new GetPrinterAttributesRequest 
+class Ejemplo3AtributosImpresora 
 
 { 
 
-    PrinterUri = printerUri 
+    public static async Task RunAsync() 
 
-}; 
+    { 
 
-  
-
-try 
-
-{ 
-
-    var response = await client.GetPrinterAttributesAsync(request); 
+        string printerUriString = "ipp://172.17.170.56:631/ipp/print"; 
 
   
 
-    Console.WriteLine($"Nombre de la impresora: {response.PrinterName}"); 
+        Console.Clear(); 
 
-    Console.WriteLine($"Estado: {response.PrinterState}"); 
+        Console.WriteLine("Ejecutando Ejemplo 2: Get-Printer-Attributes"); 
 
-    Console.WriteLine($"Formatos soportados: {string.Join(", ", response.DocumentFormatSupported ?? Array.Empty<string>())}"); 
+        Console.WriteLine("============================================"); 
 
-    Console.WriteLine($"¿Soporta color?: {response.ColorSupported}"); 
+  
+
+        var client = new SharpIppClient(); 
+
+        try 
+
+        { 
+
+            var request = new GetPrinterAttributesRequest 
+
+            { 
+
+                PrinterUri = new Uri(printerUriString) 
+
+            }; 
+
+  
+
+            Console.WriteLine($"Consultando atributos de la impresora: {request.PrinterUri}..."); 
+
+            var response = await client.GetPrinterAttributesAsync(request); 
+
+  
+
+            Console.ForegroundColor = ConsoleColor.Green; 
+
+            Console.WriteLine("¡Atributos recibidos con éxito!"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine("------------------------------------------"); 
+
+            Console.WriteLine($"  -> Nombre de la Impresora: {response.PrinterName}"); 
+
+            Console.WriteLine($"  -> Estado de la Impresora: {response.PrinterState}"); 
+
+            Console.WriteLine($"  -> Formatos Soportados: {string.Join(", ", response.DocumentFormatSupported ?? Array.Empty<string>())}"); 
+
+            Console.WriteLine("------------------------------------------"); 
+
+        } 
+
+        catch (Exception e) 
+
+        { 
+
+            Console.WriteLine($"Ha ocurrido un error: {e.Message}"); 
+
+        } 
+
+  
+
+        Console.WriteLine("\nPresiona una tecla para volver al menú..."); 
+
+        Console.ReadKey(); 
+
+    } 
 
 } 
 
-catch (IppResponseException e) 
-
-{ 
-
-    Console.WriteLine($"Error de IPP: {e.ResponseMessage.StatusCode}"); 
-
-} 
-
-Ejemplo 3: Listar Trabajos de Impresión 
+Ejemplo 4: Listar Trabajos de Impresión 
 
 Para ver qué trabajos están en la cola de la impresora. 
 
+using System; 
+
+using System.Linq; 
+
+using System.Net.Http; 
+
+using System.Threading.Tasks; 
+
 using SharpIpp; 
+
+using SharpIpp.Exceptions; 
 
 using SharpIpp.Models; 
 
-using SharpIpp.Protocol.Models; 
+using SharpIpp.Protocol.Models; // Necesario para el enum WhichJobs 
 
   
 
-var client = new SharpIppClient(); 
-
-var printerUri = new Uri("ipp://192.168.1.100/ipp/print"); 
-
-  
-
-var request = new GetJobsRequest 
+class Ejemplo4ListarTrabajos 
 
 { 
 
-    PrinterUri = printerUri, 
-
-    WhichJobs = WhichJobs.NotCompleted // Opciones: Completed, NotCompleted 
-
-}; 
-
-  
-
-try 
-
-{ 
-
-    var response = await client.GetJobsAsync(request); 
-
-  
-
-    if (response.Jobs.Any()) 
+    public static async Task RunAsync() 
 
     { 
 
-        Console.WriteLine("Trabajos en la cola:"); 
+        // --- CONFIGURACIÓN --- 
 
-        foreach (var job in response.Jobs) 
+        string printerUriString = "ipp://172.17.170.56:631/ipp/print"; 
+
+        // --------------------- 
+
+  
+
+        Console.Clear(); 
+
+        Console.WriteLine("Ejemplo 4: Get-Jobs (Listar Trabajos de Impresión)"); 
+
+        Console.WriteLine("=================================================="); 
+
+        Console.WriteLine("Esta operación obtiene una lista de trabajos de una impresora, filtrando por su estado."); 
+
+  
+
+        // Hacemos el ejemplo interactivo 
+
+        WhichJobs whichJobs; 
+
+        while (true) 
 
         { 
 
-            Console.WriteLine($"- Job ID: {job.JobId}, Nombre: {job.JobName}, Estado: {job.JobState}"); 
+            Console.Write("\n¿Qué trabajos deseas ver? (1: No Completados, 2: Completados): "); 
+
+            var choice = Console.ReadLine(); 
+
+            if (choice == "1") 
+
+            { 
+
+                whichJobs = WhichJobs.NotCompleted; 
+
+                break; 
+
+            } 
+
+            if (choice == "2") 
+
+            { 
+
+                whichJobs = WhichJobs.Completed; 
+
+                break; 
+
+            } 
+
+            Console.WriteLine("Opción no válida. Por favor, introduce 1 o 2."); 
+
+        } 
+
+  
+
+        var client = new SharpIppClient(); 
+
+        try 
+
+        { 
+
+            var request = new GetJobsRequest 
+
+            { 
+
+                PrinterUri = new Uri(printerUriString), 
+
+                WhichJobs = whichJobs, 
+
+                // Opcional: puedes pedir que solo te muestre tus trabajos 
+
+                // MyJobs = true,  
+
+                // RequestingUserName = "tu_usuario" 
+
+            }; 
+
+  
+
+            Console.WriteLine($"\nConsultando trabajos en la impresora: {request.PrinterUri}..."); 
+
+            var response = await client.GetJobsAsync(request); 
+
+  
+
+            Console.ForegroundColor = ConsoleColor.Green; 
+
+            Console.WriteLine("¡Consulta de trabajos exitosa!"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine("------------------------------------------"); 
+
+  
+
+            if (response.Jobs.Any()) 
+
+            { 
+
+                Console.WriteLine($"Se encontraron {response.Jobs.Length} trabajos:"); 
+
+                foreach (var job in response.Jobs) 
+
+                { 
+
+                    // La respuesta de GetJobs puede no traer todos los atributos, 
+
+                    // algunos pueden ser nulos si no se solicitan explícitamente. 
+
+                    Console.WriteLine($"  -> Job ID: {job.JobId}, Nombre: {job.JobName ?? "N/A"}, Estado: {job.JobState ?? 0}"); 
+
+                } 
+
+            } 
+
+            else 
+
+            { 
+
+                Console.WriteLine("No se encontraron trabajos que coincidan con el filtro."); 
+
+            } 
+
+            Console.WriteLine("------------------------------------------"); 
+
+        } 
+
+        catch (IppResponseException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nError de IPP: La impresora respondió con un error. Código: {e.ResponseMessage.StatusCode}"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine($"  -> Detalles: {e.Message}"); 
+
+        } 
+
+        catch (HttpRequestException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine("\nError de Red: No se pudo conectar con la impresora."); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine($"  -> Verifica que la URI '{printerUriString}' sea correcta y que la impresora esté accesible en la red."); 
+
+        } 
+
+        catch (Exception e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nOcurrió un error inesperado: {e.GetType().Name}"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine($"  -> Detalles: {e.Message}"); 
+
+        } 
+
+        finally 
+
+        { 
+
+            Console.WriteLine("\nPresiona una tecla para volver al menú..."); 
+
+            Console.ReadKey(); 
 
         } 
 
     } 
 
-    else 
-
-    { 
-
-        Console.WriteLine("No hay trabajos en la cola."); 
-
-    } 
-
 } 
 
-catch (IppResponseException e) 
-
-{ 
-
-    Console.WriteLine($"Error de IPP: {e.ResponseMessage.StatusCode}"); 
-
-} 
-
-Ejemplo 4: Validate-Job 
+Ejemplo 5: Validate-Job 
 
 Esta operación se utiliza para comprobar si una impresora aceptaría un trabajo con ciertos atributos, pero sin llegar a imprimirlo. Es ideal para validar la configuración antes de enviar el documento final. 
 
+using System; 
+
+using System.IO; 
+
+using System.Net.Http; 
+
+using System.Threading.Tasks; 
+
 using SharpIpp; 
+
+using SharpIpp.Exceptions; 
 
 using SharpIpp.Models; 
 
+using SharpIpp.Protocol.Models; // Necesario para el enum Sides 
+
   
 
-public async Task ValidatePrintJobAsync() 
+class Ejemplo5ValidateJob 
 
 { 
 
-    var client = new SharpIppClient(); 
-
-    var printerUri = new Uri("ipp://192.168.1.100/ipp/print"); 
-
-  
-
-    // Se necesita un Stream del documento, aunque no se envíe. 
-
-    // Puede ser un stream vacío o el del documento real. 
-
-    await using var stream = new MemoryStream(new byte[0]); 
-
-  
-
-    var request = new ValidateJobRequest 
+    public static async Task RunAsync() 
 
     { 
 
-        PrinterUri = printerUri, 
+        // --- CONFIGURACIÓN --- 
 
-        Document = stream, 
+        string printerUriString = "ipp://172.17.170.56:631/ipp/print"; 
 
-        NewJobAttributes = new NewJobAttributes 
+        // --------------------- 
+
+  
+
+        Console.Clear(); 
+
+        Console.WriteLine("Ejemplo 5: Validate-Job"); 
+
+        Console.WriteLine("======================="); 
+
+        Console.WriteLine("Esta operación comprueba si una impresora aceptaría un trabajo con ciertos atributos, sin imprimirlo."); 
+
+  
+
+        var client = new SharpIppClient(); 
+
+  
+
+        try 
 
         { 
 
-            Copies = 2, 
+            // Para Validate-Job, se necesita un Stream, pero no se envían sus datos. 
 
-            Sides = SharpIpp.Protocol.Models.Sides.TwoSidedLongEdge 
+            // Un MemoryStream vacío es suficiente y no requiere un archivo físico. 
 
-        } 
-
-    }; 
+            await using var stream = new MemoryStream(new byte[0]); 
 
   
 
-    try 
+            var attributesToValidate = new NewJobAttributes 
 
-    { 
+            { 
 
-        var response = await client.ValidateJobAsync(request); 
+                Copies = 2, 
 
-        // Si no hay excepción, la configuración es válida. 
+                Sides = Sides.TwoSidedLongEdge // Validar si la impresora puede imprimir a doble cara 
 
-        Console.WriteLine("La impresora ha validado la configuración del trabajo correctamente."); 
+            }; 
 
-    } 
+  
 
-    catch (IppResponseException e) 
+            var request = new ValidateJobRequest 
 
-    { 
+            { 
 
-        Console.WriteLine($"La validación ha fallado. StatusCode: {e.ResponseMessage.StatusCode}"); 
+                PrinterUri = new Uri(printerUriString), 
+
+                Document = stream, 
+
+                NewJobAttributes = attributesToValidate 
+
+            }; 
+
+  
+
+            Console.WriteLine($"\nValidando los siguientes atributos en la impresora {printerUriString}:"); 
+
+            Console.WriteLine($"  - Copias: {attributesToValidate.Copies}"); 
+
+            Console.WriteLine($"  - Caras: {attributesToValidate.Sides}"); 
+
+  
+
+            await client.ValidateJobAsync(request); 
+
+  
+
+            Console.ForegroundColor = ConsoleColor.Green; 
+
+            Console.WriteLine("\nResultado: ¡Validación exitosa! La impresora acepta estos atributos."); 
+
+            Console.ResetColor(); 
+
+        } 
+
+        catch (IppResponseException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Yellow; 
+
+            Console.WriteLine($"\nResultado: La validación ha fallado (lo cual es normal si un atributo no es soportado)."); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine($"  -> La impresora respondió con el estado: {e.ResponseMessage.StatusCode}"); 
+
+            Console.WriteLine($"  -> Detalles: {e.Message}"); 
+
+        } 
+
+        catch (HttpRequestException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine("\nError de Red: No se pudo conectar con la impresora."); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine($"  -> Verifica que la URI '{printerUriString}' sea correcta y que la impresora esté accesible en la red."); 
+
+        } 
+
+        catch (Exception e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nOcurrió un error inesperado: {e.GetType().Name}"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine($"  -> Detalles: {e.Message}"); 
+
+        } 
+
+        finally 
+
+        { 
+
+            Console.WriteLine("\nPresiona una tecla para volver al menú..."); 
+
+            Console.ReadKey(); 
+
+        } 
 
     } 
 
 } 
 
-Ejemplo 5: Get-Jobs 
+Ejemplo 6: Get-Jobs 
 
 Permite obtener una lista de los trabajos de impresión en la impresora, filtrando por su estado. 
 
+using System; 
+
+using System.Linq; 
+
+using System.Net.Http; 
+
+using System.Threading.Tasks; 
+
 using SharpIpp; 
+
+using SharpIpp.Exceptions; 
 
 using SharpIpp.Models; 
 
@@ -574,115 +878,341 @@ using SharpIpp.Protocol.Models;
 
   
 
-public async Task ListPendingJobsAsync() 
+class Ejemplo6GetJobs 
 
 { 
 
-    var client = new SharpIppClient(); 
-
-    var printerUri = new Uri("ipp://192.168.1.100/ipp/print"); 
-
-  
-
-    var request = new GetJobsRequest 
+    public static async Task RunAsync() 
 
     { 
 
-        PrinterUri = printerUri, 
+        // --- CONFIGURACIÓN --- 
 
-        WhichJobs = WhichJobs.NotCompleted, // Opciones: Completed, NotCompleted 
+        string printerUriString = "ipp://172.17.170.56:631/ipp/print"; 
 
-        RequestingUserName = "mi-usuario" // Opcional: para ver solo tus trabajos 
-
-    }; 
+        // --------------------- 
 
   
 
-    try 
+        Console.Clear(); 
 
-    { 
+        Console.WriteLine("Ejemplo 6: Get-Jobs (Listar Trabajos de Impresión)"); 
 
-        var response = await client.GetJobsAsync(request); 
+        Console.WriteLine("=================================================="); 
 
-        Console.WriteLine($"Se encontraron {response.Jobs.Length} trabajos no completados."); 
+  
 
-        foreach (var job in response.Jobs) 
+        WhichJobs whichJobs; 
+
+        while (true) 
 
         { 
 
-            Console.WriteLine($"- Job ID: {job.JobId}, Estado: {job.JobState}, Nombre: {job.JobName}"); 
+            Console.Write("\n¿Qué trabajos deseas ver? (1: No Completados, 2: Completados): "); 
+
+            var choice = Console.ReadLine(); 
+
+            if (choice == "1") { whichJobs = WhichJobs.NotCompleted; break; } 
+
+            if (choice == "2") { whichJobs = WhichJobs.Completed; break; } 
+
+            Console.WriteLine("Opción no válida. Por favor, introduce 1 o 2."); 
+
+        } 
+
+  
+
+        var client = new SharpIppClient(); 
+
+        try 
+
+        { 
+
+            var request = new GetJobsRequest 
+
+            { 
+
+                PrinterUri = new Uri(printerUriString), 
+
+                WhichJobs = whichJobs, 
+
+                // Comentamos esta línea. 
+
+                // en impresoras que no tienen un sistema de usuarios configurado. 
+
+                // RequestingUserName = Environment.UserName  
+
+            }; 
+
+  
+
+            Console.WriteLine($"\nConsultando trabajos en la impresora: {request.PrinterUri}..."); 
+
+            var response = await client.GetJobsAsync(request); 
+
+  
+
+            Console.ForegroundColor = ConsoleColor.Green; 
+
+            Console.WriteLine("¡Consulta de trabajos exitosa!"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine("------------------------------------------"); 
+
+  
+
+            if (response.Jobs.Any()) 
+
+            { 
+
+                Console.WriteLine($"Se encontraron {response.Jobs.Length} trabajos:"); 
+
+                foreach (var job in response.Jobs) 
+
+                { 
+
+                    Console.WriteLine($"  -> Job ID: {job.JobId}, Nombre: {job.JobName ?? "N/A"}, Estado: {job.JobState ?? 0}"); 
+
+                } 
+
+            } 
+
+            else 
+
+            { 
+
+                Console.WriteLine("No se encontraron trabajos que coincidan con el filtro."); 
+
+            } 
+
+            Console.WriteLine("------------------------------------------"); 
+
+        } 
+
+        catch (IppResponseException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nError de IPP: La impresora respondió con un error. Código: {e.ResponseMessage.StatusCode}"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine($"  -> Detalles: {e.Message}"); 
+
+        } 
+
+        catch (Exception e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nOcurrió un error inesperado: {e.GetType().Name}"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine($"  -> Detalles: {e.Message}"); 
+
+        } 
+
+        finally 
+
+        { 
+
+            Console.WriteLine("\nPresiona una tecla para volver al menú..."); 
+
+            Console.ReadKey(); 
 
         } 
 
     } 
 
-    catch (IppResponseException e) 
-
-    { 
-
-        Console.WriteLine($"Error al obtener los trabajos. StatusCode: {e.ResponseMessage.StatusCode}"); 
-
-    } 
-
 } 
 
-Ejemplo 6: Get-Job-Attributes 
+Ejemplo 7: Get-Job-Attributes 
 
 Obtiene información detallada de un trabajo de impresión específico a través de su ID. 
 
+using System; 
+
+using System.Linq; 
+
+using System.Net.Http; 
+
+using System.Threading.Tasks; 
+
 using SharpIpp; 
+
+using SharpIpp.Exceptions; 
 
 using SharpIpp.Models; 
 
   
 
-public async Task GetJobDetailsAsync(int jobId) 
+class Ejemplo7GetJobAttributes 
 
 { 
 
-    // Nota: El 'jobId' se habría obtenido de una llamada previa a PrintJobAsync o CreateJobAsync. 
+    public static async Task RunAsync() 
 
-    var client = new SharpIppClient(); 
+    { 
 
-    var printerUri = new Uri("ipp://192.168.1.100/ipp/print"); 
+        // --- CONFIGURACIÓN --- 
+
+        string printerUriString = "ipp://172.17.170.56:631/ipp/print"; 
+
+        // --------------------- 
 
   
 
-    var request = new GetJobAttributesRequest 
+        Console.Clear(); 
 
-    { 
+        Console.WriteLine("Ejemplo 7: Get-Job-Attributes"); 
 
-        PrinterUri = printerUri, 
+        Console.WriteLine("============================="); 
 
-        JobId = jobId 
-
-    }; 
+        Console.WriteLine("Esta operación obtiene los atributos detallados de un trabajo de impresión específico."); 
 
   
 
-    try 
+        int jobId; 
 
-    { 
+        while (true) 
 
-        var response = await client.GetJobAttributesAsync(request); 
+        { 
 
-        var job = response.JobAttributes; 
+            Console.Write("\nPor favor, introduce el ID del trabajo que deseas consultar: "); 
 
-        Console.WriteLine($"Detalles del Job ID {job.JobId}:"); 
+            if (int.TryParse(Console.ReadLine(), out jobId)) 
 
-        Console.WriteLine($"  Estado: {job.JobState}"); 
+            { 
 
-        Console.WriteLine($"  Razón del estado: {string.Join(", ", job.JobStateReasons ?? Array.Empty<string>())}"); 
+                break; 
 
-        Console.WriteLine($"  Páginas completadas: {job.JobImpressionsCompleted}"); 
+            } 
 
-    } 
+            Console.WriteLine("ID no válido. Debe ser un número entero."); 
 
-    catch (IppResponseException e) 
+        } 
 
-    { 
+  
 
-        Console.WriteLine($"Error al obtener los atributos del trabajo. StatusCode: {e.ResponseMessage.StatusCode}"); 
+        var client = new SharpIppClient(); 
+
+        try 
+
+        { 
+
+            var request = new GetJobAttributesRequest 
+
+            { 
+
+                PrinterUri = new Uri(printerUriString), 
+
+                JobId = jobId 
+
+            }; 
+
+  
+
+            Console.WriteLine($"\nConsultando atributos del Job ID {jobId}..."); 
+
+            var response = await client.GetJobAttributesAsync(request); 
+
+  
+
+            Console.ForegroundColor = ConsoleColor.Green; 
+
+            Console.WriteLine("¡Atributos del trabajo recibidos con éxito!"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine("------------------------------------------"); 
+
+            var job = response.JobAttributes; 
+
+            Console.WriteLine($"  -> Job ID: {job.JobId}"); 
+
+            Console.WriteLine($"  -> Nombre del Job: {job.JobName ?? "N/A"}"); 
+
+            Console.WriteLine($"  -> Estado: {job.JobState}"); 
+
+            Console.WriteLine($"  -> Razones del Estado: {string.Join(", ", job.JobStateReasons ?? Array.Empty<string>())}"); 
+
+            Console.WriteLine($"  -> Creado por: {job.JobOriginatingUserName ?? "N/A"}"); 
+
+            Console.WriteLine($"  -> Páginas completadas: {job.JobImpressionsCompleted}"); 
+
+            Console.WriteLine($"  -> K-Octetos procesados: {job.JobKOctetsProcessed}"); 
+
+            Console.WriteLine($"  -> Creado en: {job.DateTimeAtCreation}"); 
+
+            Console.WriteLine("------------------------------------------"); 
+
+        } 
+
+        catch (IppResponseException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nError de IPP: La impresora respondió con un error. Código: {e.ResponseMessage.StatusCode}"); 
+
+            Console.ResetColor(); 
+
+            // Un error común aquí es 'ClientErrorNotFound' si el Job ID no existe. 
+
+            if(e.ResponseMessage.StatusCode == SharpIpp.Protocol.Models.IppStatusCode.ClientErrorNotFound) 
+
+            { 
+
+                Console.WriteLine("  -> Causa probable: El Job ID introducido no existe en la impresora."); 
+
+            } 
+
+        } 
+
+        catch (HttpRequestException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine("\nError de Red: No se pudo conectar con la impresora."); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine($"  -> Verifica que la URI '{printerUriString}' sea correcta."); 
+
+        } 
+
+        catch (Exception e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nOcurrió un error inesperado: {e.GetType().Name}"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine($"  -> Detalles: {e.Message}"); 
+
+        } 
+
+        finally 
+
+        { 
+
+            Console.WriteLine("\nPresiona una tecla para volver al menú..."); 
+
+            Console.ReadKey(); 
+
+        } 
 
     } 
 
@@ -690,206 +1220,738 @@ public async Task GetJobDetailsAsync(int jobId)
 
  
 
-Ejemplo 7: Cancel-Job 
+Ejemplo 8: Cancel-Job 
 
 Cancela un trabajo que está en la cola de impresión. 
 
+using System; 
+
+using System.Net.Http; 
+
+using System.Threading.Tasks; 
+
 using SharpIpp; 
+
+using SharpIpp.Exceptions; 
 
 using SharpIpp.Models; 
 
   
 
-public async Task CancelSpecificJobAsync(int jobId) 
+class Ejemplo8CancelJob 
 
 { 
 
-    // Nota: El 'jobId' debe corresponder a un trabajo existente. 
+    public static async Task RunAsync() 
 
-    var client = new SharpIppClient(); 
+    { 
 
-    var printerUri = new Uri("ipp://192.168.1.100/ipp/print"); 
+        // --- CONFIGURACIÓN --- 
+
+        string printerUriString = "ipp://172.17.170.56:631/ipp/print"; 
+
+        // --------------------- 
 
   
 
-    var request = new CancelJobRequest 
+        Console.Clear(); 
 
-    { 
+        Console.WriteLine("Ejemplo 8: Cancel-Job"); 
 
-        PrinterUri = printerUri, 
+        Console.WriteLine("====================="); 
 
-        JobId = jobId, 
+        Console.WriteLine("Esta operación cancela un trabajo de impresión que esté en la cola."); 
 
-        RequestingUserName = "mi-usuario" 
-
-    }; 
+        Console.WriteLine("Nota: Para probarlo, primero envía una impresión y rápidamente ejecuta este ejemplo."); 
 
   
 
-    try 
+        int jobId; 
 
-    { 
+        while (true) 
 
-        var response = await client.CancelJobAsync(request); 
+        { 
 
-        // Una respuesta exitosa (sin excepción) significa que la orden de cancelación fue aceptada. 
+            Console.Write("\nPor favor, introduce el ID del trabajo que deseas cancelar: "); 
 
-        Console.WriteLine($"La orden para cancelar el trabajo {jobId} ha sido enviada."); 
+            if (int.TryParse(Console.ReadLine(), out jobId)) 
 
-    } 
+            { 
 
-    catch (IppResponseException e) 
+                break; 
 
-    { 
+            } 
 
-        Console.WriteLine($"Error al cancelar el trabajo. StatusCode: {e.ResponseMessage.StatusCode}"); 
+            Console.WriteLine("ID no válido. Debe ser un número entero."); 
+
+        } 
+
+  
+
+        var client = new SharpIppClient(); 
+
+        try 
+
+        { 
+
+            var request = new CancelJobRequest 
+
+            { 
+
+                PrinterUri = new Uri(printerUriString), 
+
+                JobId = jobId, 
+
+                // RequestingUserName = Environment.UserName // Se comenta para evitar errores de BadRequest 
+
+            }; 
+
+  
+
+            Console.WriteLine($"\nEnviando orden para cancelar el Job ID {jobId}..."); 
+
+  
+
+            // Envía la solicitud de cancelación 
+
+            await client.CancelJobAsync(request); 
+
+  
+
+            Console.ForegroundColor = ConsoleColor.Green; 
+
+            Console.WriteLine($"\n¡Solicitud de cancelación para el trabajo {jobId} enviada con éxito!"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine("El trabajo pasará al estado 'Canceled'. Puedes verificarlo con el Ejemplo 6."); 
+
+        } 
+
+        catch (IppResponseException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nError de IPP: La impresora respondió con un error. Código: {e.ResponseMessage.StatusCode}"); 
+
+            Console.ResetColor(); 
+
+            if (e.ResponseMessage.StatusCode == SharpIpp.Protocol.Models.IppStatusCode.ClientErrorNotFound) 
+
+            { 
+
+                Console.WriteLine("  -> Causa probable: El Job ID no existe, o el trabajo ya se completó o canceló."); 
+
+            } 
+
+        } 
+
+        catch (HttpRequestException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine("\nError de Red: No se pudo conectar con la impresora."); 
+
+            Console.ResetColor(); 
+
+        } 
+
+        catch (Exception e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nOcurrió un error inesperado: {e.GetType().Name}"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine($"  -> Detalles: {e.Message}"); 
+
+        } 
+
+        finally 
+
+        { 
+
+            Console.WriteLine("\nPresiona una tecla para volver al menú..."); 
+
+            Console.ReadKey(); 
+
+        } 
 
     } 
 
 } 
 
-Ejemplo 8: Hold-Job y Release-Job 
+Ejemplo 9: Hold-Job y Release-Job 
 
 Estas operaciones permiten poner en espera un trabajo y luego liberarlo para que se imprima. 
 
+using System; 
+
+using System.Net.Http; 
+
+using System.Threading.Tasks; 
+
 using SharpIpp; 
+
+using SharpIpp.Exceptions; 
 
 using SharpIpp.Models; 
 
   
 
-public async Task HoldAndReleaseJobAsync(int jobId) 
+class Ejemplo9HoldAndReleaseJob 
 
 { 
 
-    var client = new SharpIppClient(); 
+    public static async Task RunAsync() 
 
-    var printerUri = new Uri("ipp://192.168.1.100/ipp/print"); 
+    { 
+
+        // --- CONFIGURACIÓN --- 
+
+        string printerUriString = "ipp://172.17.170.56:631/ipp/print"; 
+
+        // --------------------- 
 
   
 
-    // 1. Poner el trabajo en espera (Hold) 
+        Console.Clear(); 
 
-    var holdRequest = new HoldJobRequest { PrinterUri = printerUri, JobId = jobId }; 
+        Console.WriteLine("Ejemplo 9: Hold-Job y Release-Job"); 
 
-    try 
+        Console.WriteLine("================================="); 
 
-    { 
-
-        await client.HoldJobAsync(holdRequest); 
-
-        Console.WriteLine($"El trabajo {jobId} ha sido puesto en espera."); 
-
-    } 
-
-    catch (IppResponseException e) 
-
-    { 
-
-        Console.WriteLine($"No se pudo poner en espera el trabajo. StatusCode: {e.ResponseMessage.StatusCode}"); 
-
-        return; 
-
-    } 
+        Console.WriteLine("Esta operación primero retiene un trabajo en la cola y luego lo libera."); 
 
   
 
-    // ... (Aquí podría haber lógica de espera o una acción del usuario) ... 
+        int jobId; 
 
-    Console.WriteLine("Liberando el trabajo en 5 segundos..."); 
+        while (true) 
 
-    await Task.Delay(5000); 
+        { 
+
+            Console.Write("\nPor favor, introduce el ID del trabajo que deseas retener y liberar: "); 
+
+            if (int.TryParse(Console.ReadLine(), out jobId)) 
+
+            { 
+
+                break; 
+
+            } 
+
+            Console.WriteLine("ID no válido. Debe ser un número entero."); 
+
+        } 
 
   
 
-    // 2. Liberar el trabajo (Release) 
+        var client = new SharpIppClient(); 
 
-    var releaseRequest = new ReleaseJobRequest { PrinterUri = printerUri, JobId = jobId }; 
+        try 
 
-    try 
+        { 
 
-    { 
+            // --- Parte 1: Retener el Trabajo (Hold-Job) --- 
 
-        await client.ReleaseJobAsync(releaseRequest); 
+            var holdRequest = new HoldJobRequest { PrinterUri = new Uri(printerUriString), JobId = jobId }; 
 
-        Console.WriteLine($"El trabajo {jobId} ha sido liberado y está listo para imprimirse."); 
+            Console.WriteLine($"\nEnviando orden para retener el Job ID {jobId}..."); 
 
-    } 
+            await client.HoldJobAsync(holdRequest); 
 
-    catch (IppResponseException e) 
+            Console.ForegroundColor = ConsoleColor.Green; 
 
-    { 
+            Console.WriteLine($"¡Trabajo {jobId} puesto en espera (held) exitosamente!"); 
 
-        Console.WriteLine($"No se pudo liberar el trabajo. StatusCode: {e.ResponseMessage.StatusCode}"); 
+            Console.ResetColor(); 
+
+  
+
+            // --- Pausa para simular un tiempo de espera --- 
+
+            Console.WriteLine("\nEl trabajo está retenido. Se liberará en 5 segundos..."); 
+
+            await Task.Delay(5000); 
+
+  
+
+            // --- Parte 2: Liberar el Trabajo (Release-Job) --- 
+
+            var releaseRequest = new ReleaseJobRequest { PrinterUri = new Uri(printerUriString), JobId = jobId }; 
+
+            Console.WriteLine($"\nEnviando orden para liberar el Job ID {jobId}..."); 
+
+            await client.ReleaseJobAsync(releaseRequest); 
+
+            Console.ForegroundColor = ConsoleColor.Green; 
+
+            Console.WriteLine($"¡Trabajo {jobId} liberado exitosamente! Ahora es elegible para impresión."); 
+
+            Console.ResetColor(); 
+
+        } 
+
+        catch (IppResponseException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nError de IPP: La impresora respondió con un error. Código: {e.ResponseMessage.StatusCode}"); 
+
+            Console.ResetColor(); 
+
+            if (e.ResponseMessage.StatusCode == SharpIpp.Protocol.Models.IppStatusCode.ServerErrorOperationNotSupported) 
+
+            { 
+
+                Console.WriteLine("  -> Causa probable: La impresora no soporta las operaciones Hold-Job o Release-Job."); 
+
+            } 
+
+            else 
+
+            { 
+
+                Console.WriteLine($"  -> Detalles: {e.Message}"); 
+
+            } 
+
+        } 
+
+        catch (HttpRequestException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine("\nError de Red: No se pudo conectar con la impresora."); 
+
+            Console.ResetColor(); 
+
+        } 
+
+        catch (Exception e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nOcurrió un error inesperado: {e.GetType().Name}"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine($"  -> Detalles: {e.Message}"); 
+
+        } 
+
+        finally 
+
+        { 
+
+            Console.WriteLine("\nPresiona una tecla para volver al menú..."); 
+
+            Console.ReadKey(); 
+
+        } 
 
     } 
 
 } 
 
-Ejemplo 9: Restart-Job 
+Ejemplo 10: Restart-Job 
 
 Reinicia un trabajo que ya se completó pero que la impresora ha retenido en su historial. 
 
+using System; 
+
+using System.Net.Http; 
+
+using System.Threading.Tasks; 
+
 using SharpIpp; 
-using SharpIpp.Models;  
-public async Task RestartSpecificJobAsync(int jobId) 
+
+using SharpIpp.Exceptions; 
+
+using SharpIpp.Models; 
+
+  
+
+class Ejemplo10RestartJob 
+
 { 
-    // Nota: La impresora debe soportar la retención de trabajos completados. 
-    var client = new SharpIppClient(); 
-    var printerUri = new Uri("ipp://192.168.1.100/ipp/print"); 
-    var request = new RestartJobRequest
+
+    public static async Task RunAsync() 
+
     { 
-        PrinterUri = printerUri, 
-        JobId = jobId 
-    }; 
-    try 
-    { 
-        await client.RestartJobAsync(request); 
-        Console.WriteLine($"El trabajo {jobId} ha sido reiniciado."); 
+
+        // --- CONFIGURACIÓN --- 
+
+        string printerUriString = "ipp://172.17.170.56:631/ipp/print"; 
+
+        // --------------------- 
+
+  
+
+        Console.Clear(); 
+
+        Console.WriteLine("Ejemplo 10: Restart-Job"); 
+
+        Console.WriteLine("========================"); 
+
+        Console.WriteLine("Esta operación reinicia un trabajo que ya se completó y fue retenido en el historial."); 
+
+        Console.ForegroundColor = ConsoleColor.Yellow; 
+
+        Console.WriteLine("ADVERTENCIA: Muchas impresoras no soportan esta operación."); 
+
+        Console.ResetColor(); 
+
+  
+
+        int jobId; 
+
+        while (true) 
+
+        { 
+
+            Console.Write("\nPor favor, introduce el ID del trabajo completado que deseas reiniciar: "); 
+
+            if (int.TryParse(Console.ReadLine(), out jobId)) 
+
+            { 
+
+                break; 
+
+            } 
+
+            Console.WriteLine("ID no válido. Debe ser un número entero."); 
+
+        } 
+
+  
+
+        var client = new SharpIppClient(); 
+
+        try 
+
+        { 
+
+            var request = new RestartJobRequest 
+
+            { 
+
+                PrinterUri = new Uri(printerUriString), 
+
+                JobId = jobId 
+
+            }; 
+
+  
+
+            Console.WriteLine($"\nEnviando orden para reiniciar el Job ID {jobId}..."); 
+
+  
+
+            await client.RestartJobAsync(request); 
+
+  
+
+            Console.ForegroundColor = ConsoleColor.Green; 
+
+            Console.WriteLine($"\n¡Trabajo {jobId} reiniciado con éxito!"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine("El trabajo volverá a la cola de impresión en estado 'pending'."); 
+
+        } 
+
+        catch (IppResponseException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nError de IPP: La impresora respondió con un error. Código: {e.ResponseMessage.StatusCode}"); 
+
+            Console.ResetColor(); 
+
+            if (e.ResponseMessage.StatusCode == SharpIpp.Protocol.Models.IppStatusCode.ServerErrorOperationNotSupported) 
+
+            { 
+
+                Console.WriteLine("  -> Causa probable: La impresora no soporta la operación Restart-Job."); 
+
+            } 
+
+            else if (e.ResponseMessage.StatusCode == SharpIpp.Protocol.Models.IppStatusCode.ClientErrorNotFound) 
+
+            { 
+
+                Console.WriteLine("  -> Causa probable: El Job ID no existe o ya fue purgado del historial."); 
+
+            } 
+
+            else 
+
+            { 
+
+                Console.WriteLine($"  -> Detalles: {e.Message}"); 
+
+            } 
+
+        } 
+
+        catch (HttpRequestException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine("\nError de Red: No se pudo conectar con la impresora."); 
+
+            Console.ResetColor(); 
+
+        } 
+
+        catch (Exception e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nOcurrió un error inesperado: {e.GetType().Name}"); 
+
+            Console.ResetColor(); 
+
+            Console.WriteLine($"  -> Detalles: {e.Message}"); 
+
+        } 
+
+        finally 
+
+        { 
+
+            Console.WriteLine("\nPresiona una tecla para volver al menú..."); 
+
+            Console.ReadKey(); 
+
+        } 
+
     } 
-    catch (IppResponseException e) 
-    { 
-        Console.WriteLine($"No se pudo reiniciar el trabajo. StatusCode: {e.ResponseMessage.StatusCode}"); 
-    } 
+
 } 
 
-Ejemplo 7: Pause-Printer, Resume-Printer y Purge-Jobs 
+Ejemplo 11: Pause-Printer, Resume-Printer y Purge-Jobs 
 
 Estas operaciones gestionan el estado de la cola de la impresora en su totalidad. 
 
+using System; 
+
+using System.Net.Http; 
+
+using System.Threading.Tasks; 
+
 using SharpIpp; 
-using SharpIpp.Models;   
-public async Task ManagePrinterQueueAsync() 
+
+using SharpIpp.Exceptions; 
+
+using SharpIpp.Models; 
+
+  
+
+class Ejemplo11ManagePrinter 
+
 { 
-    var client = new SharpIppClient(); 
-    var printerUri = new Uri("ipp://192.168.1.100/ipp/print"); 
-    // 1. Pausar la impresora 
-    try 
+
+    public static async Task RunAsync() 
+
     { 
-        var pauseRequest = new PausePrinterRequest { PrinterUri = printerUri }; 
-        await client.PausePrinterAsync(pauseRequest); 
-        Console.WriteLine("La impresora ha sido pausada. No procesará nuevos trabajos."); 
+
+        // --- CONFIGURACIÓN --- 
+
+        string printerUriString = "ipp://172.17.170.56:631/ipp/print"; 
+
+        // --------------------- 
+
+  
+
+        Console.Clear(); 
+
+        Console.WriteLine("Ejemplo 11: Gestionar Impresora (Pause/Resume/Purge)"); 
+
+        Console.WriteLine("====================================================="); 
+
+        Console.WriteLine("Este ejemplo demuestra cómo pausar, reanudar y purgar la cola de una impresora."); 
+
+  
+
+        var client = new SharpIppClient(); 
+
+        try 
+
+        { 
+
+            // --- 1. Pausar la Impresora --- 
+
+            Console.WriteLine($"\nEnviando orden para pausar la impresora en {printerUriString}..."); 
+
+            var pauseRequest = new PausePrinterRequest { PrinterUri = new Uri(printerUriString) }; 
+
+            await client.PausePrinterAsync(pauseRequest); 
+
+            Console.ForegroundColor = ConsoleColor.Green; 
+
+            Console.WriteLine("¡Impresora pausada! No aceptará nuevos trabajos para impresión."); 
+
+            Console.ResetColor(); 
+
+  
+
+            Console.WriteLine("\nEsperando 5 segundos antes de reanudar..."); 
+
+            await Task.Delay(5000); 
+
+  
+
+            // --- 2. Reanudar la Impresora --- 
+
+            Console.WriteLine($"\nEnviando orden para reanudar la impresora..."); 
+
+            var resumeRequest = new ResumePrinterRequest { PrinterUri = new Uri(printerUriString) }; 
+
+            await client.ResumePrinterAsync(resumeRequest); 
+
+            Console.ForegroundColor = ConsoleColor.Green; 
+
+            Console.WriteLine("¡Impresora reanudada! La cola de impresión vuelve a estar activa."); 
+
+            Console.ResetColor(); 
+
+  
+
+            Console.WriteLine("\nEsperando 5 segundos antes de purgar..."); 
+
+            await Task.Delay(5000); 
+
+  
+
+            // --- 3. Purgar todos los trabajos --- 
+
+            Console.ForegroundColor = ConsoleColor.Yellow; 
+
+            Console.WriteLine("\nADVERTENCIA: La siguiente acción eliminará TODOS los trabajos de la cola de la impresora."); 
+
+            Console.ResetColor(); 
+
+            Console.Write("¿Estás seguro de que deseas continuar? (s/n): "); 
+
+            string confirmation = Console.ReadLine() ?? ""; 
+
+  
+
+            if (confirmation.Equals("s", StringComparison.OrdinalIgnoreCase)) 
+
+            { 
+
+                Console.WriteLine($"\nEnviando orden para purgar todos los trabajos..."); 
+
+                var purgeRequest = new PurgeJobsRequest { PrinterUri = new Uri(printerUriString) }; 
+
+                await client.PurgeJobsAsync(purgeRequest); 
+
+                Console.ForegroundColor = ConsoleColor.Green; 
+
+                Console.WriteLine("¡Todos los trabajos han sido eliminados de la impresora!"); 
+
+                Console.ResetColor(); 
+
+            } 
+
+            else 
+
+            { 
+
+                Console.WriteLine("\nOperación de purgado cancelada por el usuario."); 
+
+            } 
+
+        } 
+
+        catch (IppResponseException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nError de IPP: La impresora respondió con un error. Código: {e.ResponseMessage.StatusCode}"); 
+
+            Console.ResetColor(); 
+
+            if (e.ResponseMessage.StatusCode == SharpIpp.Protocol.Models.IppStatusCode.ServerErrorOperationNotSupported) 
+
+            { 
+
+                Console.WriteLine("  -> Causa probable: La impresora no soporta esta operación de gestión."); 
+
+            } 
+
+            else 
+
+            { 
+
+                Console.WriteLine($"  -> Detalles: {e.Message}"); 
+
+            } 
+
+        } 
+
+        catch (HttpRequestException e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine("\nError de Red: No se pudo conectar con la impresora."); 
+
+            Console.ResetColor(); 
+
+        } 
+
+        catch (Exception e) 
+
+        { 
+
+            Console.ForegroundColor = ConsoleColor.Red; 
+
+            Console.WriteLine($"\nOcurrió un error inesperado: {e.GetType().Name}"); 
+
+            Console.ResetColor(); 
+
+        } 
+
+        finally 
+
+        { 
+
+            Console.WriteLine("\nPresiona una tecla para volver al menú..."); 
+
+            Console.ReadKey(); 
+
+        } 
+
     } 
-    catch (IppResponseException e) { Console.WriteLine($"Error al pausar: {e.ResponseMessage.StatusCode}"); } 
-    await Task.Delay(2000); 
-    // 2. Reanudar la impresora 
-    try 
-    { 
-        var resumeRequest = new ResumePrinterRequest { PrinterUri = printerUri }; 
-        await client.ResumePrinterAsync(resumeRequest); 
-        Console.WriteLine("La impresora ha sido reanudada."); 
-    } 
-    catch (IppResponseException e) { Console.WriteLine($"Error al reanudar: {e.ResponseMessage.StatusCode}"); } 
-    await Task.Delay(2000); 
-    // 3. Purgar (eliminar) todos los trabajos 
-    // ¡¡¡CUIDADO: ESTA ACCIÓN ES DESTRUCTIVA Y NO SE PUEDE DESHACER!!! 
-    try 
-    { 
-        var purgeRequest = new PurgeJobsRequest { PrinterUri = printerUri }; 
-        await client.PurgeJobsAsync(purgeRequest); 
-        Console.WriteLine("Todos los trabajos han sido eliminados de la cola de la impresora."); 
-    } 
-    catch (IppResponseException e) { Console.WriteLine($"Error al purgar: {e.ResponseMessage.StatusCode}"); } 
+
 } 
 
 6. Manejo de Errores 🚨 
